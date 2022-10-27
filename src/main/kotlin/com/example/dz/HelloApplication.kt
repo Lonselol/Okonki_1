@@ -33,6 +33,11 @@ enum class Position {
     LEFT_TOP
 }
 
+enum class SelectedAnimation {
+    VANILLA,
+    ALTER
+}
+
 enum class ImageStyle {
     CIRCLE, RECTANGLE
 }
@@ -48,6 +53,7 @@ class Config {
     var position = Position.RIGHT_BOTTOM
     var musicFile = "https://clck.ru/32ReV2"
     var bgColor = "#808080"
+    var selectedAnim = SelectedAnimation.VANILLA
 }
 
 class Toast {
@@ -85,6 +91,11 @@ class Toast {
             return this
         }
 
+        fun setAnimMode(mode: SelectedAnimation): Builder {
+            config.selectedAnim = mode
+            return this
+        }
+
         fun build(): Toast  {
             var toast = Toast()
             toast.config = config
@@ -111,9 +122,20 @@ class Toast {
         val appName = Label(config.appName)
 
         val buttonClose = Button()
+        buttonClose.style = "-fx-background-color: #D3D3D3;" +
+                "-fx-background-radius: 5px;" +
+                "-fx-font-size: 11pt;" +
+                "-fx-padding: 5px 10px;"
         box.children.add(buttonClose)
         buttonClose.addEventFilter(MouseEvent.MOUSE_PRESSED, EventHandler { me: MouseEvent ->
-            closeAnimation()
+            when (config.selectedAnim) {
+                SelectedAnimation.VANILLA -> {
+                    closeAnimation()
+                }
+                SelectedAnimation.ALTER -> {
+                    altCloseAnimation()
+                }
+            }
         })
 
         vbox.children.addAll(title, message, appName, buttonClose)
@@ -186,9 +208,28 @@ class Toast {
     }
 
     private fun altOpenAnimation() {
-        val anim = TranslateTransition(Duration.millis(1500.0), root, )
-        var screenRect = Screen.getPrimary().bounds
+        val anim = TranslateTransition(Duration.millis(1500.0), root)
+        when (config.position) {
+            Position.LEFT_BOTTOM -> {
+                anim.fromX = 0.0 - windows.width
+                anim.toX = 0.0
+            }
 
+            Position.LEFT_TOP -> {
+                anim.fromX = 0.0 - windows.width
+                anim.toX = 0.0
+            }
+
+            Position.RIGHT_BOTTOM -> {
+                anim.fromX = 0.0 + windows.width
+                anim.toX = 0.0
+            }
+
+            Position.RIGHT_TOP -> {
+                anim.fromX = 0.0 + windows.width
+                anim.toX = 0.0
+            }
+        }
         anim.cycleCount = 1
         anim.play()
     }
@@ -206,9 +247,28 @@ class Toast {
     }
 
     private fun altCloseAnimation() {
-        val anim = FadeTransition(Duration.millis(1500.0), root)
-        anim.fromValue = config.alpha
-        anim.toValue = 0.0
+        val anim = TranslateTransition(Duration.millis(1500.0), root)
+        when (config.position) {
+            Position.LEFT_BOTTOM -> {
+                anim.fromX =  0.0
+                anim.toX = 0.0 - windows.width
+            }
+
+            Position.LEFT_TOP -> {
+                anim.fromX = 0.0
+                anim.toX = 0.0 - windows.width
+            }
+
+            Position.RIGHT_BOTTOM -> {
+                anim.fromX = 0.0
+                anim.toX = 0.0 + windows.width
+            }
+
+            Position.RIGHT_TOP -> {
+                anim.fromX = 0.0
+                anim.toX = 0.0 + windows.width
+            }
+        }
         anim.cycleCount = 1
         anim.onFinished = EventHandler {
             Platform.exit()
@@ -219,14 +279,28 @@ class Toast {
 
     fun start() {
         windows.show()
-        openAnimation();
+        when (config.selectedAnim) {
+            SelectedAnimation.VANILLA -> {
+                openAnimation()
+            }
+            SelectedAnimation.ALTER -> {
+                altOpenAnimation()
+            }
+        }
         val thread = Thread {
             try {
                 Thread.sleep(config.openTime.toLong())
             } catch (e: InterruptedException) {
                 e.printStackTrace()
             }
-            closeAnimation()
+            when (config.selectedAnim) {
+                SelectedAnimation.VANILLA -> {
+                    closeAnimation()
+                }
+                SelectedAnimation.ALTER -> {
+                    altCloseAnimation()
+                }
+            }
         }
         Thread(thread).start()
     }
@@ -240,8 +314,9 @@ class SomeClass: Application() {
             .setTitle("Title")
             .setMessage("AppMessage")
             .setAppName("AppName")
-            .setPosition(Position.RIGHT_TOP)
+            .setPosition(Position.RIGHT_BOTTOM)
             .setStyle(ImageStyle.CIRCLE)
+            .setAnimMode(SelectedAnimation.ALTER)
             .build()
         toast.start()
     }
